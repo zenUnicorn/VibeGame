@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Breakout</title>
+<style>
+  body {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    background: #111;
+    color: #eee;
+    font-family: sans-serif;
+  }
+  canvas {
+    background: #000;
+    border: 2px solid #444;
+    margin-top: 20px;
+  }
+  #hud {
+    display: flex;
+    justify-content: space-between;
+    width: 480px;
+    margin-top: 10px;
+    font-size: 18px;
+  }
+  #message {
+    margin-top: 10px;
+    font-size: 22px;
+    min-height: 30px;
+  }
+</style>
+</head>
+<body>
+  <h1>Breakout</h1>
+  <div id="hud">
+    <span id="score">Score: 0</span>
+    <span id="lives">Lives: 3</span>
+  </div>
+  <canvas id="gameCanvas" width="480" height="400"></canvas>
+  <div id="message"></div>
+
+<script>
+const canvas = document.getElementById("gameCanvas");
+const ctx = canvas.getContext("2d");
+const scoreEl = document.getElementById("score");
+const livesEl = document.getElementById("lives");
+const messageEl = document.getElementById("message");
+
+// --- Game state ---
+let score = 0;
+let lives = 3;
+let gameOver = false;
+let gameWon = false;
+
+const paddle = {
+  width: 80,
+  height: 10,
+  x: (canvas.width - 80) / 2,
+  y: canvas.height - 20,
+  speed: 7,
+  dx: 0,
+};
+
+const ball = {
+  x: canvas.width / 2,
+  y: canvas.height - 30,
+  radius: 6,
+  speed: 4,
+  dx: 3,
+  dy: -3,
+};
+
+const brickInfo = {
+  rows: 4,
+  cols: 7,
+  width: 55,
+  height: 18,
+  padding: 8,
+  offsetTop: 40,
+  offsetLeft: 20,
+};
+
+let bricks = [];
+function buildBricks() {
+  bricks = [];
+  for (let r = 0; r < brickInfo.rows; r++) {
+    for (let c = 0; c < brickInfo.cols; c++) {
+      bricks.push({
+        x: brickInfo.offsetLeft + c * (brickInfo.width + brickInfo.padding),
+        y: brickInfo.offsetTop + r * (brickInfo.height + brickInfo.padding),
+        width: brickInfo.width,
+        height: brickInfo.height,
+        destroyed: false,
+      });
+    }
+  }
+}
+buildBricks();
+
+// --- Input handling ---
+const keys = { left: false, right: false };
+document.addEventListener("keydown", (e) => {
+  if (e.key === "ArrowLeft") keys.left = true;
+  if (e.key === "ArrowRight") keys.right = true;
+});
+document.addEventListener("keyup", (e) => {
+  if (e.key === "ArrowLeft") keys.left = false;
+  if (e.key === "ArrowRight") keys.right = false;
+});
+
+function updatePaddle() {
+  if (keys.left) paddle.dx = -paddle.speed;
+  else if (keys.right) paddle.dx = paddle.speed;
+  else paddle.dx = 0;
+
+  paddle.x += paddle.dx;
+  // Keep the paddle fully inside the canvas
+  paddle.x = Math.max(0, Math.min(canvas.width - paddle.width, paddle.x));
+}
+
+// --- Collision logic (identical to the tested pure functions) ---
+function ballHitsPaddle(ball, paddle) {
+  return (
+    ball.y + ball.radius >= paddle.y &&
+    ball.y - ball.radius <= paddle.y + paddle.height &&
+    ball.x >= paddle.x &&
+    ball.x <= paddle.x + paddle.width
+  );
+}
+
+function paddleBounceAngle(ball, paddle) {
+  const hitPos = (ball.x - (paddle.x + paddle.width / 2)) / (paddle.width / 2);
+  const clamped = Math.max(-1, Math.min(1, hitPos));
+  const maxAngle = Math.PI / 3;
+  return clamped * maxAngle;
+}
+
+function brickCollision(ball, brick) {
+  if (brick.destroyed) return false;
+  return (
+    ball.x + ball.radius > brick.x &&
+    ball.x - ball.radius < brick.x + brick.width &&
+    ball.y + ball.radius > brick.y &&
+    ball.y - ball.radius < brick.y + brick.height
+  );
+}
+
+function updateBall() {
+  ball.x += ball.dx;
+  ball.y += ball.dy;
+
+  // Bounce off the left/right walls
+  if (ball.x + ball.radius > canvas.width || ball.x - ball.radius < 0) {
+    ball.dx *= -1;
+  }
+  // Bounce off the top wall
+  if (ball.y - ball.radius < 0) {
+    ball.dy *= -1;
+  }
+
+  // Paddle collision: angle the bounce based on where it hit
+  if (ballHitsPaddle(ball, paddle) && ball.dy > 0) {
+    const angle = paddleBounceAngle(ball, paddle);
+    ball.dx = ball.speed * Math.sin(angle);
+    ball.dy = -Math.abs(ball.speed * Math.cos(angle));
+  }
+
+  // Brick collisions
+  for (const brick of bricks) {
+    if (brickCollision(ball, brick)) {
+      brick.destroyed = true;
+      ball.dy *= -1;
+      score += 10;
+      scoreEl.textContent = `Score: ${score}`;
+      break; // only resolve one brick per frame, avoids double-counting overlaps
+    }
+  }
+
+  // Ball fell past the paddle: lose a life
+  if (ball.y - ball.radius > canvas.height) {
+    lives -= 1;
+    livesEl.textContent = `Lives: ${lives}`;
+    if (lives <= 0) {
+      gameOver = true;
+      messageEl.textContent = "Game Over! Refresh to try again.";
+    } else {
+      resetBallAndPaddle();
+    }
+  }
+
+  // Win condition: every brick destroyed
+  if (bricks.every((b) => b.destroyed)) {
+    gameWon = true;
+    messageEl.textContent = "You Win! Refresh to play again.";
+  }
+}
+
+function resetBallAndPaddle() {
+  ball.x = canvas.width / 2;
+  ball.y = canvas.height - 30;
+  ball.dx = 3;
+  ball.dy = -3;
+  paddle.x = (canvas.width - paddle.width) / 2;
+}
+
+// --- Rendering ---
+function draw() {
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+  ctx.fillStyle = "#0ff";
+  ctx.fillRect(paddle.x, paddle.y, paddle.width, paddle.height);
+
+  ctx.beginPath();
+  ctx.arc(ball.x, ball.y, ball.radius, 0, Math.PI * 2);
+  ctx.fillStyle = "#fff";
+  ctx.fill();
+  ctx.closePath();
+
+  for (const brick of bricks) {
+    if (brick.destroyed) continue;
+    ctx.fillStyle = "#f55";
+    ctx.fillRect(brick.x, brick.y, brick.width, brick.height);
+  }
+}
+
+function loop() {
+  if (!gameOver && !gameWon) {
+    updatePaddle();
+    updateBall();
+  }
+  draw();
+  requestAnimationFrame(loop);
+}
+
+loop();
+</script>
+</body>
+</html>
