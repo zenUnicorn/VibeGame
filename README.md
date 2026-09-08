@@ -1,4 +1,4 @@
-# 🕹️ VibeGame - Classic Breakout
+#  VibeGame - Classic Breakout
 
 A retro-style 2D Breakout arcade game built with vanilla HTML5 Canvas and JavaScript. It features dynamic paddle bounce physics, brick grid management, real-time score and lives tracking, and pure, unit-tested collision logic.
 
@@ -23,9 +23,7 @@ Destroy all bricks on the screen by bouncing the ball off your paddle without le
 - **Victory Condition**: Clear all 28 bricks to win the game!
 - **Game Over**: Losing all 3 lives ends the game.
 
----
-
-## ✨ Features
+## Features
 
 - **Smooth HTML5 Canvas Rendering**: Powered by `requestAnimationFrame` running at 60 FPS.
 - **Realistic Dynamic Bounce Angles**: The rebound trajectory varies based on where the ball strikes the paddle (angles up to $\pm 60^\circ$), giving players precise control over ball direction.
@@ -33,9 +31,7 @@ Destroy all bricks on the screen by bouncing the ball off your paddle without le
 - **Decoupled & Testable Logic**: Core collision detection and physics calculations are isolated as pure functions without DOM or Canvas dependencies.
 - **Zero Dependencies**: Pure HTML, CSS, and modern JavaScript running natively in any browser and Node.js environment.
 
----
-
-## 📂 Project Structure
+## Project Structure
 
 ```text
 VibeGame/
@@ -45,9 +41,7 @@ VibeGame/
 └── README.md            # Game documentation and instructions
 ```
 
----
-
-## 🚀 Getting Started
+## Getting Started
 
 ### 1. Run the Game Locally
 You do not need to install any packages to play the game. Simply open `breakout.html` in your favorite web browser:
@@ -76,9 +70,7 @@ PASSED: brickCollision correctly handles hits, misses, and destroyed bricks
 ALL COLLISION LOGIC TESTS PASSED
 ```
 
----
-
-## ⚙️ Physics & Mechanics
+## Physics & Mechanics
 
 - **Paddle Collision (`ballHitsPaddle`)**: Uses bounding box intersection against the ball's coordinates and radius.
 - **Bounce Angle Calculation (`paddleBounceAngle`)**: Calculates normalized hit position relative to the paddle's center (from `-1.0` at the far left to `+1.0` at the far right), scaled up to a maximum reflection angle of $60^\circ$ ($\frac{\pi}{3}$ radians).
